@@ -2,7 +2,7 @@
 
 import { el } from './ortak.js';
 
-export const SURUM = '2026-11-05-b';
+export const SURUM = '2026-11-05-c';
 
 const GRUPLAR = [
   {
@@ -122,6 +122,12 @@ async function workerKur() {
   }
 
   if (window.crossOriginIsolated) {
+    try {
+      sessionStorage.removeItem('pdf-yenilendi');
+    } catch {
+      // Gizli sekmede erişim kapalı olabilir, iş yine görülür.
+    }
+
     return;
   }
 
