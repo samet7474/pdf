@@ -115,9 +115,12 @@ export function indirmeBaglantisi(blob, dosyaAdi) {
     ),
   );
 
-  const dosya = new File([blob], dosyaAdi, { type: blob.type });
+  // "text/plain;charset=utf-8" gibi eklerle bazı telefonlar paylaşımı reddediyor.
+  const dosya = new File([blob], dosyaAdi, { type: blob.type.split(';')[0] });
 
   if (navigator.canShare && navigator.canShare({ files: [dosya] })) {
+    const not = el('div', { sinif: 'durum hata', hidden: true });
+
     kutu.append(
       el(
         'button',
@@ -125,17 +128,24 @@ export function indirmeBaglantisi(blob, dosyaAdi) {
           sinif: 'ikincil',
           type: 'button',
           onclick: async () => {
+            not.hidden = true;
+
             try {
-              await navigator.share({ files: [dosya], title: dosyaAdi });
+              // Yalnız dosya gönderilir. Yanında başlık olunca bazı uygulamalar dosyayı almıyor.
+              await navigator.share({ files: [dosya] });
             } catch (hata) {
+              // Kullanıcı paylaşım menüsünü kendisi kapattıysa hata göstermeye gerek yok.
               if (hata.name !== 'AbortError') {
-                throw hata;
+                console.error(hata);
+                not.textContent = `Paylaşım açılmadı (${hata.name}). Dosyayı İndir ile kaydet, sonra Drive'a yükle.`;
+                not.hidden = false;
               }
             }
           },
         },
-        'Paylaş ya da Drive\'a kaydet',
+        'Paylaş (Drive kuruluysa menüde çıkar)',
       ),
+      not,
     );
   }
 
