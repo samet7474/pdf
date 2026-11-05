@@ -1,16 +1,7 @@
 // Resim biçimi değiştirme, boyutlandırma ve küçültme.
 
-import { boyutYaz, uzantisiz } from './aralik.js';
-import {
-  dosyaSecici,
-  durumAlani,
-  el,
-  indirmeBaglantisi,
-  isBaglat,
-  nefes,
-  tuvalBosalt,
-  tuvaldenBlob,
-} from './ortak.js';
+import { uzantisiz } from './aralik.js';
+import { el, topluArac, tuvalBosalt, tuvaldenBlob } from './ortak.js';
 
 const TURLER = {
   jpg: 'image/jpeg',
@@ -50,11 +41,6 @@ async function resimAc(dosya) {
 }
 
 export function resim(kok) {
-  let dosyalar = [];
-
-  const liste = el('ul', { sinif: 'liste' });
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
   const tur = el(
     'select',
     {},
@@ -77,8 +63,6 @@ export function resim(kok) {
     el('option', { value: '0.5' }, 'Yüzde 50'),
     el('option', { value: '0.25' }, 'Yüzde 25'),
   );
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, 'Çevir');
-
   const kaliteAlani = el(
     'label',
     { sinif: 'alan' },
@@ -86,53 +70,21 @@ export function resim(kok) {
     kalite,
   );
 
-  const ayarlar = el(
-    'div',
-    { hidden: true },
-    el('label', { sinif: 'alan' }, el('span', {}, 'Neye çevrilsin?'), tur),
-    kaliteAlani,
-    el('label', { sinif: 'alan' }, el('span', {}, 'Boyut'), olcek),
-    dugme,
-  );
-
   tur.addEventListener('change', () => {
     kaliteAlani.hidden = tur.value === 'png';
   });
 
-  function ciz() {
-    liste.replaceChildren(
-      ...dosyalar.map((dosya, sira) =>
-        el(
-          'li',
-          {},
-          el('div', { sinif: 'ad' }, dosya.name, el('small', {}, boyutYaz(dosya.size))),
-          el(
-            'button',
-            {
-              sinif: 'kucuk',
-              type: 'button',
-              'aria-label': `${dosya.name} resmini listeden çıkar`,
-              onclick: () => {
-                dosyalar.splice(sira, 1);
-                ciz();
-              },
-            },
-            '×',
-          ),
-        ),
-      ),
-    );
-
-    ayarlar.hidden = dosyalar.length === 0;
-  }
-
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-
-    for (const [sira, dosya] of dosyalar.entries()) {
-      durum.yaz(`${dosya.name} çevriliyor`, sira / dosyalar.length);
-      await nefes();
-
+  topluArac(kok, {
+    kabul: 'image/*,.heic,.heif',
+    baslik: 'Resimleri seç',
+    ipucu: 'JPG, PNG, WebP, HEIC',
+    dugmeYazisi: 'Çevir',
+    alanlar: [
+      el('label', { sinif: 'alan' }, el('span', {}, 'Neye çevrilsin?'), tur),
+      kaliteAlani,
+      el('label', { sinif: 'alan' }, el('span', {}, 'Boyut'), olcek),
+    ],
+    is: async (dosya) => {
       const bit = await resimAc(dosya);
       const oran = Number(olcek.value);
       const tuval = document.createElement('canvas');
@@ -158,28 +110,7 @@ export function resim(kok) {
         throw new Error('Bu tarayıcı bu resim türünü yazamıyor. Başka bir tür seç.');
       }
 
-      sonuc.append(indirmeBaglantisi(blob, `${uzantisiz(dosya.name)}.${tur.value}`));
-    }
-
-    durum.tamam(`${dosyalar.length} resim hazır.`);
+      return { blob, ad: `${uzantisiz(dosya.name)}.${tur.value}` };
+    },
   });
-
-  kok.append(
-    dosyaSecici({
-      kabul: 'image/*,.heic,.heif',
-      coklu: true,
-      baslik: 'Resimleri seç',
-      ipucu: 'JPG, PNG, WebP, HEIC',
-      secilince: (yeniler) => {
-        dosyalar.push(...yeniler);
-        sonuc.replaceChildren();
-        durum.temizle();
-        ciz();
-      },
-    }),
-    liste,
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
 }

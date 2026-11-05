@@ -2,7 +2,7 @@
 
 import { el } from './ortak.js';
 
-export const SURUM = '2026-11-05-f';
+export const SURUM = '2026-11-05-g';
 
 const GRUPLAR = [
   {

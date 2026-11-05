@@ -14,6 +14,7 @@ import {
   pdfAc,
   pdfBlob,
   sayfaCiz,
+  topluArac,
   tuvalBosalt,
   tuvaldenBlob,
 } from './ortak.js';
@@ -170,12 +171,6 @@ export function resimdenPdf(kok) {
 }
 
 export function pdftenResim(kok) {
-  let pdf = null;
-  let dosyaAdi = '';
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
-  const bilgi = el('p', { sinif: 'uyari' });
   const tur = el(
     'select',
     {},
@@ -193,75 +188,57 @@ export function pdftenResim(kok) {
     placeholder: 'Boş bırakırsan bütün sayfalar',
     autocomplete: 'off',
   });
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, 'Resme çevir');
 
-  const ayarlar = el(
-    'div',
-    { hidden: true },
-    bilgi,
-    el('label', { sinif: 'alan' }, el('span', {}, 'Resim türü'), tur),
-    el('label', { sinif: 'alan' }, el('span', {}, 'Netlik'), netlik),
-    el(
-      'label',
-      { sinif: 'alan' },
-      el('span', {}, 'Hangi sayfalar?', el('small', {}, 'Örnek: 1-3, 5')),
-      aralik,
-    ),
-    dugme,
-  );
+  topluArac(kok, {
+    kabul: 'application/pdf,.pdf',
+    baslik: 'PDF dosyalarını seç',
+    ipucu: 'Bir ya da birkaç dosya',
+    dugmeYazisi: 'Resme çevir',
+    alanlar: [
+      el('label', { sinif: 'alan' }, el('span', {}, 'Resim türü'), tur),
+      el('label', { sinif: 'alan' }, el('span', {}, 'Netlik'), netlik),
+      el(
+        'label',
+        { sinif: 'alan' },
+        el('span', {}, 'Hangi sayfalar?', el('small', {}, 'Örnek: 1-3, 5')),
+        aralik,
+      ),
+    ],
+    is: async (dosya, durum) => {
+      const pdf = await pdfAc(await dosya.arrayBuffer());
 
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-    const secilen = aralik.value.trim() === ''
-      ? Array.from({ length: pdf.numPages }, (_, sira) => sira + 1)
-      : aralikCoz(aralik.value, pdf.numPages);
-    const ad = uzantisiz(dosyaAdi);
-    const uzanti = tur.value;
-    const mime = uzanti === 'png' ? 'image/png' : 'image/jpeg';
+      try {
+        const secilen = aralik.value.trim() === ''
+          ? Array.from({ length: pdf.numPages }, (_, sira) => sira + 1)
+          : aralikCoz(aralik.value, pdf.numPages);
+        const ad = uzantisiz(dosya.name);
+        const uzanti = tur.value;
+        const mime = uzanti === 'png' ? 'image/png' : 'image/jpeg';
+        const sonuclar = [];
 
-    for (const [sira, numara] of secilen.entries()) {
-      durum.yaz(`Sayfa ${numara} çiziliyor`, sira / secilen.length);
-      await nefes();
+        for (const [sira, numara] of secilen.entries()) {
+          durum.yaz(`Sayfa ${numara} çiziliyor`, sira / secilen.length);
+          await nefes();
 
-      const sayfa = await pdf.getPage(numara);
-      const tuval = await sayfaCiz(sayfa, Number(netlik.value));
-      const blob = await tuvaldenBlob(tuval, mime, 0.9);
+          const sayfa = await pdf.getPage(numara);
+          const tuval = await sayfaCiz(sayfa, Number(netlik.value));
+          const blob = await tuvaldenBlob(tuval, mime, 0.9);
 
-      tuvalBosalt(tuval);
-      sayfa.cleanup();
-      sonuc.append(indirmeBaglantisi(blob, `${ad}-sayfa-${numara}.${uzanti}`));
-    }
-
-    durum.tamam(`${secilen.length} resim hazır. Her birini ayrı indirebilirsin.`);
-  });
-
-  kok.append(
-    dosyaSecici({
-      kabul: 'application/pdf,.pdf',
-      baslik: 'PDF dosyasını seç',
-      ipucu: 'Tek dosya',
-      secilince: async ([dosya]) => {
-        durum.yaz('Dosya okunuyor');
-        sonuc.replaceChildren();
-        ayarlar.hidden = true;
-
-        try {
-          pdf = await pdfAc(await dosya.arrayBuffer());
-          dosyaAdi = dosya.name;
-          bilgi.textContent = `${dosya.name}: ${pdf.numPages} sayfa`;
-          ayarlar.hidden = false;
-          durum.temizle();
-        } catch (hata) {
-          durum.hata(hataMetni(hata));
+          tuvalBosalt(tuval);
+          sayfa.cleanup();
+          sonuclar.push({
+            blob,
+            ad: `${ad}-sayfa-${numara}.${uzanti}`,
+            mesaj: `${secilen.length} resim hazır.`,
+          });
         }
-      },
-    }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
 
-  return () => pdf?.destroy();
+        return sonuclar;
+      } finally {
+        await pdf.destroy();
+      }
+    },
+  });
 }
 
 const KUCULTME_SEVIYELERI = {
@@ -300,89 +277,67 @@ async function resimlestirerekKucult(veri, seviye, durum) {
 }
 
 export function kucult(kok) {
-  let dosya = null;
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
-  const bilgi = el('p', { sinif: 'uyari' });
   const yaziKoru = el('input', { type: 'radio', name: 'seviye', value: 'yazi', checked: true });
   const orta = el('input', { type: 'radio', name: 'seviye', value: 'orta' });
   const guclu = el('input', { type: 'radio', name: 'seviye', value: 'guclu' });
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, 'Küçült');
 
-  const ayarlar = el(
-    'div',
-    { hidden: true },
-    bilgi,
-    el(
-      'div',
-      { sinif: 'alan secenekler' },
+  topluArac(kok, {
+    kabul: 'application/pdf,.pdf',
+    baslik: 'PDF dosyalarını seç',
+    ipucu: 'En çok taranmış ve fotoğraflı dosyalarda işe yarar.',
+    dugmeYazisi: 'Küçült',
+    alanlar: [
       el(
-        'label',
-        { sinif: 'secenek' },
-        yaziKoru,
-        el('span', {}, 'Yazıyı koru', el('small', {}, 'Kalite değişmez, ama dosya az küçülür.')),
+        'div',
+        { sinif: 'alan secenekler' },
+        el(
+          'label',
+          { sinif: 'secenek' },
+          yaziKoru,
+          el('span', {}, 'Yazıyı koru', el('small', {}, 'Kalite değişmez, ama dosya az küçülür.')),
+        ),
+        el(
+          'label',
+          { sinif: 'secenek' },
+          orta,
+          el('span', {}, 'Orta', el('small', {}, 'Sayfalar resme döner. Yazı seçilemez olur.')),
+        ),
+        el(
+          'label',
+          { sinif: 'secenek' },
+          guclu,
+          el('span', {}, 'Güçlü', el('small', {}, 'En küçük dosya. Yazı seçilemez olur, kalite düşer.')),
+        ),
       ),
-      el(
-        'label',
-        { sinif: 'secenek' },
-        orta,
-        el('span', {}, 'Orta', el('small', {}, 'Sayfalar resme döner. Yazı seçilemez olur.')),
-      ),
-      el(
-        'label',
-        { sinif: 'secenek' },
-        guclu,
-        el('span', {}, 'Güçlü', el('small', {}, 'En küçük dosya. Yazı seçilemez olur, kalite düşer.')),
-      ),
-    ),
-    dugme,
-  );
+    ],
+    is: async (dosya, durum) => {
+      const veri = await dosya.arrayBuffer();
+      let baytlar;
 
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-    const veri = await dosya.arrayBuffer();
-    let baytlar;
+      if (yaziKoru.checked) {
+        durum.yaz('Dosya yeniden yazılıyor', 0.5);
+        await nefes();
+        const pdf = await PDFDocument.load(veri);
+        baytlar = await pdf.save({ useObjectStreams: true });
+      } else {
+        baytlar = await resimlestirerekKucult(veri, orta.checked ? 'orta' : 'guclu', durum);
+      }
 
-    if (yaziKoru.checked) {
-      durum.yaz('Dosya yeniden yazılıyor', 0.5);
-      await nefes();
-      const pdf = await PDFDocument.load(veri);
-      baytlar = await pdf.save({ useObjectStreams: true });
-    } else {
-      baytlar = await resimlestirerekKucult(veri, orta.checked ? 'orta' : 'guclu', durum);
-    }
+      const { kuculdu, yuzde } = kucultmeSonucu(dosya.size, baytlar.length);
 
-    const { kuculdu, yuzde } = kucultmeSonucu(dosya.size, baytlar.length);
+      if (!kuculdu) {
+        throw new Error(
+          `Bu seçenek dosyayı küçültmedi (${boyutYaz(dosya.size)}). Özgün dosyanı kullan ya da daha güçlü seçeneği dene.`,
+        );
+      }
 
-    if (!kuculdu) {
-      durum.hata(
-        `Bu seçenek dosyayı küçültmedi (${boyutYaz(dosya.size)}). Özgün dosyanı kullan ya da daha güçlü seçeneği dene.`,
-      );
-      return;
-    }
-
-    durum.tamam(`${boyutYaz(dosya.size)} → ${boyutYaz(baytlar.length)}, yüzde ${yuzde} küçüldü.`);
-    sonuc.append(indirmeBaglantisi(pdfBlob(baytlar), `${uzantisiz(dosya.name)}-kucuk.pdf`));
+      return {
+        blob: pdfBlob(baytlar),
+        ad: `${uzantisiz(dosya.name)}-kucuk.pdf`,
+        mesaj: `${boyutYaz(dosya.size)} → ${boyutYaz(baytlar.length)}, yüzde ${yuzde} küçüldü.`,
+      };
+    },
   });
-
-  kok.append(
-    dosyaSecici({
-      kabul: 'application/pdf,.pdf',
-      baslik: 'PDF dosyasını seç',
-      ipucu: 'En çok taranmış ve fotoğraflı dosyalarda işe yarar.',
-      secilince: ([secilen]) => {
-        dosya = secilen;
-        bilgi.textContent = `${dosya.name}: ${boyutYaz(dosya.size)}`;
-        ayarlar.hidden = false;
-        sonuc.replaceChildren();
-        durum.temizle();
-      },
-    }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
 }
 
 async function ocrIsciKur(durum, ilerleme) {
@@ -405,138 +360,86 @@ async function ocrIsciKur(durum, ilerleme) {
 }
 
 export function ocr(kok) {
-  let dosya = null;
-  let pdf = null;
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
-  const bilgi = el('p', { sinif: 'uyari' });
   const aralik = el('input', {
     type: 'text',
     placeholder: 'Boş bırakırsan bütün sayfalar',
     autocomplete: 'off',
   });
-  const aralikAlani = el(
-    'label',
-    { sinif: 'alan' },
-    el('span', {}, 'Hangi sayfalar?', el('small', {}, 'Telefonda sayfa başına biraz zaman alır.')),
-    aralik,
-  );
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, 'Yazıyı çıkar');
-  const ayarlar = el('div', { hidden: true }, bilgi, aralikAlani, dugme);
 
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
+  topluArac(kok, {
+    kabul: 'application/pdf,.pdf,image/*',
+    baslik: 'Taranmış PDF ya da resimleri seç',
+    ipucu: 'Türkçe ve İngilizce okur. İlk seferde 10 MB kadar veri iner.',
+    dugmeYazisi: 'Yazıyı çıkar',
+    alanlar: [
+      el(
+        'label',
+        { sinif: 'alan' },
+        el('span', {}, 'PDF\'te hangi sayfalar?', el('small', {}, 'Telefonda sayfa başına biraz zaman alır.')),
+        aralik,
+      ),
+    ],
+    is: async (dosya, durum) => {
+      const pdfMi = dosya.type === 'application/pdf' || /\.pdf$/i.test(dosya.name);
+      const pdf = pdfMi ? await pdfAc(await dosya.arrayBuffer()) : null;
 
-    const secilen = !pdf
-      ? [1]
-      : aralik.value.trim() === ''
-        ? Array.from({ length: pdf.numPages }, (_, sira) => sira + 1)
-        : aralikCoz(aralik.value, pdf.numPages);
+      durum.yaz('Yazı tanıma motoru hazırlanıyor. İlk seferde bir dakika sürebilir.');
 
-    durum.yaz('Yazı tanıma motoru hazırlanıyor. İlk seferde bir dakika sürebilir.');
+      let isci = null;
 
-    let siradaki = 0;
-    const isci = await ocrIsciKur(durum, (oran) => {
-      durum.yaz(
-        `Sayfa ${siradaki + 1} / ${secilen.length} okunuyor`,
-        (siradaki + oran) / secilen.length,
-      );
-    });
+      try {
+        const secilen = !pdf
+          ? [1]
+          : aralik.value.trim() === ''
+            ? Array.from({ length: pdf.numPages }, (_, sira) => sira + 1)
+            : aralikCoz(aralik.value, pdf.numPages);
 
-    try {
-      const parcalar = [];
+        let siradaki = 0;
+        isci = await ocrIsciKur(durum, (oran) => {
+          durum.yaz(
+            `Sayfa ${siradaki + 1} / ${secilen.length} okunuyor`,
+            (siradaki + oran) / secilen.length,
+          );
+        });
 
-      for (const [sira, numara] of secilen.entries()) {
-        siradaki = sira;
-        let gorsel = dosya;
-        let tuval = null;
+        const parcalar = [];
 
-        if (pdf) {
-          const sayfa = await pdf.getPage(numara);
-          tuval = await sayfaCiz(sayfa, 2.5);
-          gorsel = tuval;
-          sayfa.cleanup();
-        }
+        for (const [sira, numara] of secilen.entries()) {
+          siradaki = sira;
+          let gorsel = dosya;
+          let tuval = null;
 
-        const { data } = await isci.recognize(gorsel);
-        parcalar.push(pdf && secilen.length > 1 ? `--- Sayfa ${numara} ---\n${data.text}` : data.text);
-
-        if (tuval) {
-          tuvalBosalt(tuval);
-        }
-      }
-
-      const metin = parcalar.join('\n').trim();
-
-      if (metin === '') {
-        durum.hata('Bu dosyada okunabilir yazı bulamadım.');
-        return;
-      }
-
-      const kutu = el('textarea', { value: metin, 'aria-label': 'Çıkarılan yazı' });
-      const kopyala = el(
-        'button',
-        {
-          sinif: 'ikincil',
-          type: 'button',
-          onclick: async () => {
-            await navigator.clipboard.writeText(kutu.value);
-            kopyala.textContent = 'Kopyalandı';
-          },
-        },
-        'Yazıyı kopyala',
-      );
-
-      durum.tamam('Yazı hazır. Makine okudu, önemli yerlerde kontrol et.');
-      sonuc.append(
-        kutu,
-        kopyala,
-        indirmeBaglantisi(
-          new Blob([metin], { type: 'text/plain;charset=utf-8' }),
-          `${uzantisiz(dosya.name)}.txt`,
-        ),
-      );
-    } finally {
-      await isci.terminate();
-    }
-  });
-
-  kok.append(
-    dosyaSecici({
-      kabul: 'application/pdf,.pdf,image/*',
-      baslik: 'Taranmış PDF ya da resim seç',
-      ipucu: 'Türkçe ve İngilizce okur. İlk seferde 10 MB kadar veri iner.',
-      secilince: async ([secilen]) => {
-        durum.yaz('Dosya okunuyor');
-        sonuc.replaceChildren();
-        ayarlar.hidden = true;
-        await pdf?.destroy();
-        pdf = null;
-
-        try {
-          dosya = secilen;
-
-          if (secilen.type === 'application/pdf' || /\.pdf$/i.test(secilen.name)) {
-            pdf = await pdfAc(await secilen.arrayBuffer());
-            bilgi.textContent = `${secilen.name}: ${pdf.numPages} sayfa`;
-            aralikAlani.hidden = false;
-          } else {
-            bilgi.textContent = secilen.name;
-            aralikAlani.hidden = true;
+          if (pdf) {
+            const sayfa = await pdf.getPage(numara);
+            tuval = await sayfaCiz(sayfa, 2.5);
+            gorsel = tuval;
+            sayfa.cleanup();
           }
 
-          ayarlar.hidden = false;
-          durum.temizle();
-        } catch (hata) {
-          durum.hata(hataMetni(hata));
-        }
-      },
-    }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
+          const { data } = await isci.recognize(gorsel);
+          parcalar.push(pdf && secilen.length > 1 ? `--- Sayfa ${numara} ---\n${data.text}` : data.text);
 
-  return () => pdf?.destroy();
+          if (tuval) {
+            tuvalBosalt(tuval);
+          }
+        }
+
+        const metin = parcalar.join('\n').trim();
+
+        if (metin === '') {
+          throw new Error('Bu dosyada okunabilir yazı bulamadım.');
+        }
+
+        return {
+          blob: new Blob([metin], { type: 'text/plain;charset=utf-8' }),
+          ad: `${uzantisiz(dosya.name)}.txt`,
+          metin,
+          mesaj: 'Yazı hazır. Makine okudu, önemli yerlerde kontrol et.',
+        };
+      } finally {
+        await isci?.terminate();
+        await pdf?.destroy();
+      }
+    },
+  });
 }

@@ -5,7 +5,7 @@
 // Başlık ekleme fikri coi-serviceworker yönteminden alındı.
 // Siteyi güncellerken SURUM değerini app.js ile birlikte artır.
 
-const SURUM = '2026-11-05-f';
+const SURUM = '2026-11-05-g';
 const UYGULAMA = `pdf-uygulama-${SURUM}`;
 const MOTOR = 'pdf-motor-1';
 

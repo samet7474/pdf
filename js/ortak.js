@@ -251,3 +251,236 @@ export function isBaglat(dugme, durum, is) {
     }
   });
 }
+
+// İndirme bağlantılarını tutar. İki ve daha çok sonuçta ZIP düğmesi çıkar.
+export function sonucAlani() {
+  const kok = el('div', { sinif: 'sonuc' });
+  const zipKutu = el('div', {});
+  const liste = el('div', {});
+  const metinKutu = el('div', {});
+  let sonuclar = [];
+
+  kok.append(metinKutu, zipKutu, liste);
+
+  function zipDugmesi() {
+    return el(
+      'button',
+      {
+        sinif: 'ikincil',
+        type: 'button',
+        onclick: async (olay) => {
+          const dugme = olay.currentTarget;
+          dugme.disabled = true;
+          dugme.textContent = 'ZIP hazırlanıyor';
+          await nefes();
+
+          try {
+            const { zipSync } = await import('../vendor/fflate.js');
+            const icerik = {};
+
+            for (const { blob, ad } of sonuclar) {
+              // Sonuçlar zaten sıkışık. Yeniden sıkıştırmak telefonu boşuna yorar.
+              icerik[benzersizAd(icerik, ad)] = [
+                new Uint8Array(await blob.arrayBuffer()),
+                { level: 0 },
+              ];
+            }
+
+            const zip = new Blob([zipSync(icerik)], { type: 'application/zip' });
+            zipKutu.replaceChildren(indirmeBaglantisi(zip, 'dosyalar.zip'));
+          } catch (hata) {
+            console.error(hata);
+            dugme.disabled = false;
+            dugme.textContent = 'ZIP oluşmadı. Dosyaları tek tek indir.';
+          }
+        },
+      },
+      `Hepsini tek ZIP olarak hazırla (${sonuclar.length} dosya)`,
+    );
+  }
+
+  return {
+    kok,
+    ekle(sonuc) {
+      sonuclar.push(sonuc);
+      liste.append(indirmeBaglantisi(sonuc.blob, sonuc.ad));
+
+      if (sonuclar.length >= 2) {
+        zipKutu.replaceChildren(zipDugmesi());
+      }
+    },
+    metinGoster(metin) {
+      const kutu = el('textarea', { value: metin, 'aria-label': 'Çıkarılan yazı' });
+      const kopyala = el(
+        'button',
+        {
+          sinif: 'ikincil',
+          type: 'button',
+          onclick: async () => {
+            await navigator.clipboard.writeText(kutu.value);
+            kopyala.textContent = 'Kopyalandı';
+          },
+        },
+        'Yazıyı kopyala',
+      );
+
+      metinKutu.replaceChildren(kutu, kopyala);
+    },
+    temizle() {
+      sonuclar = [];
+      zipKutu.replaceChildren();
+      liste.replaceChildren();
+      metinKutu.replaceChildren();
+    },
+  };
+}
+
+function benzersizAd(icerik, ad) {
+  if (!(ad in icerik)) {
+    return ad;
+  }
+
+  const nokta = ad.lastIndexOf('.');
+  const govde = nokta > 0 ? ad.slice(0, nokta) : ad;
+  const uzanti = nokta > 0 ? ad.slice(nokta) : '';
+  let sira = 2;
+
+  while (`${govde} (${sira})${uzanti}` in icerik) {
+    sira += 1;
+  }
+
+  return `${govde} (${sira})${uzanti}`;
+}
+
+// Bir ya da çok dosya alan araçların ortak kalıbı.
+// is(dosya, durum, ortak) her dosya için çalışır ve sonuç döner:
+// { blob, ad, mesaj, metin } ya da bunların listesi. Bir dosya hata verirse diğerleri sürer.
+export function topluArac(kok, {
+  kabul,
+  baslik,
+  ipucu,
+  uyari,
+  alanlar = [],
+  dugmeYazisi,
+  kontrol,
+  secimDegisti,
+  is,
+}) {
+  let dosyalar = [];
+
+  const liste = el('ul', { sinif: 'liste' });
+  const durum = durumAlani();
+  const sonuc = sonucAlani();
+  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, dugmeYazisi);
+  const ayarlar = el('div', { hidden: true }, ...alanlar, dugme);
+
+  function ciz() {
+    liste.replaceChildren(
+      ...dosyalar.map((dosya, sira) =>
+        el(
+          'li',
+          {},
+          el('div', { sinif: 'ad' }, dosya.name, el('small', {}, boyutYaz(dosya.size))),
+          el(
+            'button',
+            {
+              sinif: 'kucuk',
+              type: 'button',
+              'aria-label': `${dosya.name} dosyasını listeden çıkar`,
+              onclick: () => {
+                dosyalar.splice(sira, 1);
+                ciz();
+              },
+            },
+            '×',
+          ),
+        ),
+      ),
+    );
+
+    ayarlar.hidden = dosyalar.length === 0;
+    dugme.textContent = dosyalar.length > 1 ? `${dugmeYazisi} (${dosyalar.length} dosya)` : dugmeYazisi;
+    secimDegisti?.(dosyalar);
+  }
+
+  isBaglat(dugme, durum, async () => {
+    sonuc.temizle();
+
+    const secilen = [...dosyalar];
+    const toplam = secilen.length;
+    const ortak = kontrol?.(secilen);
+    const hatalar = [];
+    let hazir = 0;
+    let sonMesaj = '';
+
+    for (const [sira, dosya] of secilen.entries()) {
+      const altDurum = {
+        yaz(metin, oran) {
+          if (toplam === 1) {
+            durum.yaz(metin, oran);
+          } else {
+            durum.yaz(`${sira + 1} / ${toplam} · ${dosya.name}: ${metin}`, (sira + (oran ?? 0)) / toplam);
+          }
+        },
+      };
+
+      altDurum.yaz('Başlıyor');
+      await nefes();
+
+      try {
+        const cikti = await is(dosya, altDurum, ortak);
+
+        for (const parca of [cikti].flat()) {
+          sonuc.ekle(parca);
+
+          if (toplam === 1 && parca.metin) {
+            sonuc.metinGoster(parca.metin);
+          }
+
+          sonMesaj = parca.mesaj ?? sonMesaj;
+        }
+
+        hazir += 1;
+      } catch (hata) {
+        console.error(hata);
+        hatalar.push(`${dosya.name}: ${hataMetni(hata)}`);
+      }
+    }
+
+    if (toplam === 1) {
+      if (hatalar.length > 0) {
+        durum.hata(hatalar[0].slice(secilen[0].name.length + 2));
+      } else {
+        durum.tamam(sonMesaj || 'Hazır.');
+      }
+
+      return;
+    }
+
+    if (hatalar.length > 0) {
+      durum.hata(`${hazir} / ${toplam} dosya hazır. Olmayanlar:\n${hatalar.join('\n')}`);
+    } else {
+      durum.tamam(`${toplam} dosya hazır.`);
+    }
+  });
+
+  kok.append(
+    uyari ? el('p', { sinif: 'uyari' }, uyari) : null,
+    dosyaSecici({
+      kabul,
+      coklu: true,
+      baslik,
+      ipucu,
+      secilince: (yeniler) => {
+        dosyalar.push(...yeniler);
+        sonuc.temizle();
+        durum.temizle();
+        ciz();
+      },
+    }),
+    liste,
+    ayarlar,
+    durum.kok,
+    sonuc.kok,
+  );
+}

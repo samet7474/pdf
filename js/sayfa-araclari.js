@@ -14,6 +14,7 @@ import {
   pdfAc,
   pdfBlob,
   sayfaCiz,
+  topluArac,
   tuvalBosalt,
 } from './ortak.js';
 
@@ -154,11 +155,6 @@ export function birlestir(kok) {
 }
 
 export function bol(kok) {
-  let kaynak = null;
-  let dosyaAdi = '';
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
   const aralik = el('input', {
     type: 'text',
     inputMode: 'text',
@@ -167,78 +163,60 @@ export function bol(kok) {
   });
   const tekDosya = el('input', { type: 'radio', name: 'bolme', checked: true });
   const ayriDosya = el('input', { type: 'radio', name: 'bolme' });
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, 'Böl');
-  const bilgi = el('p', { sinif: 'uyari' });
 
-  const ayarlar = el(
-    'div',
-    { hidden: true },
-    bilgi,
-    el(
-      'label',
-      { sinif: 'alan' },
-      el('span', {}, 'Hangi sayfalar?', el('small', {}, 'Tire aralık, virgül ayrı sayfa demek.')),
-      aralik,
-    ),
-    el(
-      'div',
-      { sinif: 'alan secenekler' },
-      el('label', { sinif: 'secenek' }, tekDosya, el('span', {}, 'Seçtiklerim tek PDF olsun')),
-      el('label', { sinif: 'secenek' }, ayriDosya, el('span', {}, 'Her sayfa ayrı PDF olsun')),
-    ),
-    dugme,
-  );
+  topluArac(kok, {
+    kabul: 'application/pdf,.pdf',
+    baslik: 'PDF dosyalarını seç',
+    ipucu: 'Bir ya da birkaç dosya. Yazdığın sayfalar hepsine uygulanır.',
+    dugmeYazisi: 'Böl',
+    alanlar: [
+      el(
+        'label',
+        { sinif: 'alan' },
+        el('span', {}, 'Hangi sayfalar?', el('small', {}, 'Tire aralık, virgül ayrı sayfa demek.')),
+        aralik,
+      ),
+      el(
+        'div',
+        { sinif: 'alan secenekler' },
+        el('label', { sinif: 'secenek' }, tekDosya, el('span', {}, 'Seçtiklerim tek PDF olsun')),
+        el('label', { sinif: 'secenek' }, ayriDosya, el('span', {}, 'Her sayfa ayrı PDF olsun')),
+      ),
+    ],
+    is: async (dosya, durum) => {
+      const kaynak = await pdfLibAc(dosya);
+      const sayfalar = aralikCoz(aralik.value, kaynak.getPageCount());
+      const ad = uzantisiz(dosya.name);
 
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-    const sayfalar = aralikCoz(aralik.value, kaynak.getPageCount());
-    const ad = uzantisiz(dosyaAdi);
+      if (tekDosya.checked) {
+        durum.yaz('Dosya hazırlanıyor', 0.5);
+        await nefes();
+        const baytlar = await sayfaKopyasi(kaynak, sayfalar)();
 
-    if (tekDosya.checked) {
-      durum.yaz('Dosya hazırlanıyor', 0.5);
-      await nefes();
-      const baytlar = await sayfaKopyasi(kaynak, sayfalar)();
+        return {
+          blob: pdfBlob(baytlar),
+          ad: `${ad}-secilen.pdf`,
+          mesaj: `${sayfalar.length} sayfalık PDF hazır.`,
+        };
+      }
 
-      durum.tamam(`${sayfalar.length} sayfalık PDF hazır.`);
-      sonuc.append(indirmeBaglantisi(pdfBlob(baytlar), `${ad}-secilen.pdf`));
-      return;
-    }
+      const sonuclar = [];
 
-    for (const [sira, numara] of sayfalar.entries()) {
-      durum.yaz(`Sayfa ${numara} hazırlanıyor`, sira / sayfalar.length);
-      await nefes();
-      const baytlar = await sayfaKopyasi(kaynak, [numara])();
-      sonuc.append(indirmeBaglantisi(pdfBlob(baytlar), `${ad}-sayfa-${numara}.pdf`));
-    }
+      for (const [sira, numara] of sayfalar.entries()) {
+        durum.yaz(`Sayfa ${numara} hazırlanıyor`, sira / sayfalar.length);
+        await nefes();
+        const baytlar = await sayfaKopyasi(kaynak, [numara])();
 
-    durum.tamam(`${sayfalar.length} ayrı PDF hazır. Her birini ayrı indirebilirsin.`);
+        sonuclar.push({
+          blob: pdfBlob(baytlar),
+          ad: `${ad}-sayfa-${numara}.pdf`,
+          mesaj: `${sayfalar.length} ayrı PDF hazır.`,
+        });
+      }
+
+      return sonuclar;
+    },
   });
-
-  kok.append(
-    dosyaSecici({
-      kabul: 'application/pdf,.pdf',
-      baslik: 'PDF dosyasını seç',
-      ipucu: 'Tek dosya',
-      secilince: async ([dosya]) => {
-        durum.yaz('Dosya okunuyor');
-        sonuc.replaceChildren();
-        ayarlar.hidden = true;
-
-        try {
-          kaynak = await pdfLibAc(dosya);
-          dosyaAdi = dosya.name;
-          bilgi.textContent = `${dosya.name}: ${kaynak.getPageCount()} sayfa`;
-          ayarlar.hidden = false;
-          durum.temizle();
-        } catch (hata) {
-          durum.hata(hataMetni(hata));
-        }
-      },
-    }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
 }
 
 export function duzenle(kok) {
@@ -399,11 +377,6 @@ export function duzenle(kok) {
 }
 
 export function dondur(kok) {
-  let kaynak = null;
-  let dosyaAdi = '';
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
   const aci = el(
     'select',
     {},
@@ -416,73 +389,42 @@ export function dondur(kok) {
     placeholder: 'Boş bırakırsan bütün sayfalar döner',
     autocomplete: 'off',
   });
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, 'Döndür');
-  const bilgi = el('p', { sinif: 'uyari' });
 
-  const ayarlar = el(
-    'div',
-    { hidden: true },
-    bilgi,
-    el('label', { sinif: 'alan' }, el('span', {}, 'Yön'), aci),
-    el(
-      'label',
-      { sinif: 'alan' },
-      el('span', {}, 'Hangi sayfalar?', el('small', {}, 'Örnek: 1-3, 5')),
-      aralik,
-    ),
-    dugme,
-  );
+  topluArac(kok, {
+    kabul: 'application/pdf,.pdf',
+    baslik: 'PDF dosyalarını seç',
+    ipucu: 'Bir ya da birkaç dosya',
+    dugmeYazisi: 'Döndür',
+    alanlar: [
+      el('label', { sinif: 'alan' }, el('span', {}, 'Yön'), aci),
+      el(
+        'label',
+        { sinif: 'alan' },
+        el('span', {}, 'Hangi sayfalar?', el('small', {}, 'Örnek: 1-3, 5')),
+        aralik,
+      ),
+    ],
+    is: async (dosya, durum) => {
+      const kopya = await pdfLibAc(dosya);
+      const sayfalar = kopya.getPages();
+      const secilen = aralik.value.trim() === ''
+        ? sayfalar.map((_, sira) => sira + 1)
+        : aralikCoz(aralik.value, sayfalar.length);
+      const eklenecek = Number(aci.value);
 
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-    const sayfalar = kaynak.getPages();
-    const secilen = aralik.value.trim() === ''
-      ? sayfalar.map((_, sira) => sira + 1)
-      : aralikCoz(aralik.value, sayfalar.length);
-    const eklenecek = Number(aci.value);
+      durum.yaz('Dosya hazırlanıyor', 0.5);
+      await nefes();
 
-    durum.yaz('Dosya hazırlanıyor', 0.5);
-    await nefes();
+      for (const numara of new Set(secilen)) {
+        const sayfa = sayfalar[numara - 1];
+        sayfa.setRotation(degrees((sayfa.getRotation().angle + eklenecek) % 360));
+      }
 
-    // Her basışta özgün dosyadan başlanır, dönüşler üst üste binmez.
-    const kopya = await PDFDocument.load(await kaynak.save());
-    const kopyaSayfalar = kopya.getPages();
-
-    for (const numara of new Set(secilen)) {
-      const sayfa = kopyaSayfalar[numara - 1];
-      const mevcut = sayfa.getRotation().angle;
-      sayfa.setRotation(degrees((mevcut + eklenecek) % 360));
-    }
-
-    const baytlar = await kopya.save();
-
-    durum.tamam(`${new Set(secilen).size} sayfa döndürüldü.`);
-    sonuc.append(indirmeBaglantisi(pdfBlob(baytlar), `${uzantisiz(dosyaAdi)}-dondurulmus.pdf`));
+      return {
+        blob: pdfBlob(await kopya.save()),
+        ad: `${uzantisiz(dosya.name)}-dondurulmus.pdf`,
+        mesaj: `${new Set(secilen).size} sayfa döndürüldü.`,
+      };
+    },
   });
-
-  kok.append(
-    dosyaSecici({
-      kabul: 'application/pdf,.pdf',
-      baslik: 'PDF dosyasını seç',
-      ipucu: 'Tek dosya',
-      secilince: async ([dosya]) => {
-        durum.yaz('Dosya okunuyor');
-        sonuc.replaceChildren();
-        ayarlar.hidden = true;
-
-        try {
-          kaynak = await pdfLibAc(dosya);
-          dosyaAdi = dosya.name;
-          bilgi.textContent = `${dosya.name}: ${kaynak.getPageCount()} sayfa`;
-          ayarlar.hidden = false;
-          durum.temizle();
-        } catch (hata) {
-          durum.hata(hataMetni(hata));
-        }
-      },
-    }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
 }

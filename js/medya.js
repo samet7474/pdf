@@ -1,7 +1,7 @@
 // Ses ve video araçları. FFmpeg tarayıcıda çalışır, dosya cihazdan çıkmaz.
 
 import { boyutYaz, sureCoz, uzantisiz } from './aralik.js';
-import { dosyaSecici, durumAlani, el, indirmeBaglantisi, isBaglat } from './ortak.js';
+import { el, topluArac } from './ortak.js';
 
 const SES_AYARLARI = {
   mp3: { mime: 'audio/mpeg', arguman: ['-c:a', 'libmp3lame', '-q:a', '2'] },
@@ -48,41 +48,14 @@ async function calistir(dosya, cikisAdi, argumanlar, durum, girisOncesi = []) {
   }
 }
 
-function tekDosyaKur(kok, { kabul, baslik, ipucu, uyari, alanlar, dugmeYazisi, is }) {
-  let dosya = null;
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
-  const bilgi = el('p', { sinif: 'uyari' });
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, dugmeYazisi);
-  const ayarlar = el('div', { hidden: true }, bilgi, ...alanlar, dugme);
-
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-    const { blob, ad } = await is(dosya, durum);
-
-    durum.tamam(`Hazır: ${boyutYaz(dosya.size)} → ${boyutYaz(blob.size)}`);
-    sonuc.append(indirmeBaglantisi(blob, ad));
+function medyaAraci(kok, ayar) {
+  topluArac(kok, {
+    ...ayar,
+    is: async (dosya, durum) => {
+      const sonuc = await ayar.is(dosya, durum);
+      return { ...sonuc, mesaj: `Hazır: ${boyutYaz(dosya.size)} → ${boyutYaz(sonuc.blob.size)}` };
+    },
   });
-
-  kok.append(
-    uyari ? el('p', { sinif: 'uyari' }, uyari) : null,
-    dosyaSecici({
-      kabul,
-      baslik,
-      ipucu,
-      secilince: ([secilen]) => {
-        dosya = secilen;
-        bilgi.textContent = `${dosya.name}: ${boyutYaz(dosya.size)}`;
-        ayarlar.hidden = false;
-        sonuc.replaceChildren();
-        durum.temizle();
-      },
-    }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
 }
 
 export function ses(kok) {
@@ -95,7 +68,7 @@ export function ses(kok) {
     el('option', { value: 'wav' }, 'WAV (büyük dosya)'),
   );
 
-  tekDosyaKur(kok, {
+  medyaAraci(kok, {
     kabul: 'audio/*,video/*,.ogg,.opus,.m4a,.mkv',
     baslik: 'Ses ya da video seç',
     ipucu: 'Videoyu seçersen yalnız sesi alınır. WhatsApp ses kaydı da olur.',
@@ -121,7 +94,7 @@ export function video(kok) {
     el('option', { value: '' }, 'Aynı kalsın'),
   );
 
-  tekDosyaKur(kok, {
+  medyaAraci(kok, {
     kabul: 'video/*,.mkv,.mov',
     baslik: 'Videoyu seç',
     ipucu: 'Çıktı her telefonda açılan MP4 olur.',
@@ -164,7 +137,7 @@ export function kes(kok) {
     autocomplete: 'off',
   });
 
-  tekDosyaKur(kok, {
+  medyaAraci(kok, {
     kabul: 'audio/*,video/*,.ogg,.opus,.m4a,.mkv',
     baslik: 'Ses ya da video seç',
     ipucu: 'Yeniden çevirmeden keser, hızlıdır.',

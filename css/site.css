@@ -310,6 +310,8 @@ button:disabled {
 
 .durum {
   margin-top: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
   min-height: 24px;
   color: var(--soluk);
 }

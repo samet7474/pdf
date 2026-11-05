@@ -5,50 +5,25 @@ import { PDFDocument, StandardFonts, rgb } from '../vendor/pdf-lib.esm.min.js';
 import { aralikCoz, uzantisiz } from './aralik.js';
 import { docxOlustur, paragraflaraAyir } from './docx.js';
 import {
-  dosyaSecici,
-  durumAlani,
   el,
-  hataMetni,
-  indirmeBaglantisi,
-  isBaglat,
   nefes,
   pdfAc,
   pdfBlob,
+  topluArac,
   tuvalBosalt,
   tuvaldenBlob,
 } from './ortak.js';
 
-function pdfAraci(kok, { ipucu = 'Tek dosya', alanlar, dugmeYazisi, is }) {
-  let dosya = null;
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
-  const bilgi = el('p', { sinif: 'uyari' });
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, dugmeYazisi);
-  const ayarlar = el('div', { hidden: true }, bilgi, ...alanlar, dugme);
-
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-    await is(dosya, durum, sonuc);
+function pdfAraci(kok, { ipucu = 'Bir ya da birkaç dosya', alanlar, dugmeYazisi, kontrol, is }) {
+  topluArac(kok, {
+    kabul: 'application/pdf,.pdf',
+    baslik: 'PDF dosyalarını seç',
+    ipucu,
+    alanlar,
+    dugmeYazisi,
+    kontrol,
+    is,
   });
-
-  kok.append(
-    dosyaSecici({
-      kabul: 'application/pdf,.pdf',
-      baslik: 'PDF dosyasını seç',
-      ipucu,
-      secilince: ([secilen]) => {
-        dosya = secilen;
-        bilgi.textContent = dosya.name;
-        ayarlar.hidden = false;
-        sonuc.replaceChildren();
-        durum.temizle();
-      },
-    }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
 }
 
 // Yazı resim olarak çizilir. Böylece Türkçe harfler için yazı tipi gömmek gerekmez.
@@ -81,12 +56,13 @@ export function filigran(kok) {
   pdfAraci(kok, {
     alanlar: [el('label', { sinif: 'alan' }, el('span', {}, 'Filigran yazısı'), yazi)],
     dugmeYazisi: 'Filigran ekle',
-    is: async (dosya, durum, sonuc) => {
-      const metin = yazi.value.trim();
-
-      if (metin === '') {
+    kontrol: () => {
+      if (yazi.value.trim() === '') {
         throw new Error('Filigran yazısını yazmadın.');
       }
+    },
+    is: async (dosya, durum) => {
+      const metin = yazi.value.trim();
 
       durum.yaz('Dosya hazırlanıyor', 0.5);
       await nefes();
@@ -111,10 +87,11 @@ export function filigran(kok) {
         });
       }
 
-      durum.tamam(`${pdf.getPageCount()} sayfaya filigran eklendi.`);
-      sonuc.append(
-        indirmeBaglantisi(pdfBlob(await pdf.save()), `${uzantisiz(dosya.name)}-filigranli.pdf`),
-      );
+      return {
+        blob: pdfBlob(await pdf.save()),
+        ad: `${uzantisiz(dosya.name)}-filigranli.pdf`,
+        mesaj: `${pdf.getPageCount()} sayfaya filigran eklendi.`,
+      };
     },
   });
 }
@@ -135,12 +112,15 @@ export function sayfaNumarasi(kok) {
       el('label', { sinif: 'alan' }, el('span', {}, 'İlk sayfanın numarası'), ilk),
     ],
     dugmeYazisi: 'Numara ekle',
-    is: async (dosya, durum, sonuc) => {
-      const baslangic = Number(ilk.value);
+    kontrol: () => {
+      const deger = Number(ilk.value);
 
-      if (!Number.isInteger(baslangic) || baslangic < 0) {
+      if (!Number.isInteger(deger) || deger < 0) {
         throw new Error('İlk sayfa numarası tam sayı olmalı.');
       }
+    },
+    is: async (dosya, durum) => {
+      const baslangic = Number(ilk.value);
 
       durum.yaz('Dosya hazırlanıyor', 0.5);
       await nefes();
@@ -163,10 +143,11 @@ export function sayfaNumarasi(kok) {
         sayfa.drawText(metin, { x, y: 20, size: boy, font: yaziTipi, color: rgb(0.2, 0.2, 0.2) });
       });
 
-      durum.tamam(`${pdf.getPageCount()} sayfa numaralandı.`);
-      sonuc.append(
-        indirmeBaglantisi(pdfBlob(await pdf.save()), `${uzantisiz(dosya.name)}-numarali.pdf`),
-      );
+      return {
+        blob: pdfBlob(await pdf.save()),
+        ad: `${uzantisiz(dosya.name)}-numarali.pdf`,
+        mesaj: `${pdf.getPageCount()} sayfa numaralandı.`,
+      };
     },
   });
 }
@@ -228,11 +209,12 @@ export function sifrele(kok) {
       ),
     ],
     dugmeYazisi: 'Şifrele',
-    is: async (dosya, durum, sonuc) => {
+    kontrol: () => {
       if (sifre.value === '') {
         throw new Error('Şifre yazmadın.');
       }
-
+    },
+    is: async (dosya, durum) => {
       durum.yaz('Dosya şifreleniyor', 0.5);
       const veri = await qpdfCalistir(dosya, ['--encrypt', sifre.value, sifre.value, '256', '--']);
 
@@ -240,8 +222,11 @@ export function sifrele(kok) {
         throw new Error('Bu dosya şifrelenemedi. Dosya bozuk ya da zaten şifreli olabilir.');
       }
 
-      durum.tamam('Dosya şifrelendi.');
-      sonuc.append(indirmeBaglantisi(pdfBlob(veri), `${uzantisiz(dosya.name)}-sifreli.pdf`));
+      return {
+        blob: pdfBlob(veri),
+        ad: `${uzantisiz(dosya.name)}-sifreli.pdf`,
+        mesaj: 'Dosya şifrelendi.',
+      };
     },
   });
 }
@@ -250,10 +235,10 @@ export function sifreKaldir(kok) {
   const sifre = el('input', { type: 'text', autocomplete: 'off', placeholder: 'Dosyanın şifresi' });
 
   pdfAraci(kok, {
-    ipucu: 'Şifresini bildiğin dosya için',
+    ipucu: 'Şifresini bildiğin dosyalar için. Birkaç dosyada şifre aynı olmalı.',
     alanlar: [el('label', { sinif: 'alan' }, el('span', {}, 'Şifre'), sifre)],
     dugmeYazisi: 'Şifreyi kaldır',
-    is: async (dosya, durum, sonuc) => {
+    is: async (dosya, durum) => {
       durum.yaz('Şifre kaldırılıyor', 0.5);
       const veri = await qpdfCalistir(dosya, [`--password=${sifre.value}`, '--decrypt']);
 
@@ -261,8 +246,11 @@ export function sifreKaldir(kok) {
         throw new Error('Şifre yanlış ya da dosya bozuk.');
       }
 
-      durum.tamam('Şifre kaldırıldı.');
-      sonuc.append(indirmeBaglantisi(pdfBlob(veri), `${uzantisiz(dosya.name)}-sifresiz.pdf`));
+      return {
+        blob: pdfBlob(veri),
+        ad: `${uzantisiz(dosya.name)}-sifresiz.pdf`,
+        mesaj: 'Şifre kaldırıldı.',
+      };
     },
   });
 }
@@ -284,7 +272,7 @@ export function pdftenYazi(kok) {
       ),
     ],
     dugmeYazisi: 'Yazıyı çıkar',
-    is: async (dosya, durum, sonuc) => {
+    is: async (dosya, durum) => {
       const pdf = await pdfAc(await dosya.arrayBuffer());
 
       try {
@@ -310,35 +298,15 @@ export function pdftenYazi(kok) {
         const tum = parcalar.join('\n\n').trim();
 
         if (tum === '') {
-          durum.hata('Bu dosyada seçilebilir yazı yok. Taranmış olabilir, "Taranmış sayfadan yazı" aracını dene.');
-          return;
+          throw new Error('Bu dosyada seçilebilir yazı yok. Taranmış olabilir, "Taranmış sayfadan yazı" aracını dene.');
         }
 
-        const kutu = el('textarea', { value: tum, 'aria-label': 'Çıkarılan yazı' });
-        const kopyala = el(
-          'button',
-          {
-            sinif: 'ikincil',
-            type: 'button',
-            onclick: async () => {
-              await navigator.clipboard.writeText(kutu.value);
-              kopyala.textContent = 'Kopyalandı';
-            },
-          },
-          'Yazıyı kopyala',
-        );
-
-        durum.tamam('Yazı hazır.');
-        sonuc.append(
-          kutu,
-          kopyala,
-          indirmeBaglantisi(
-            new Blob([tum], { type: 'text/plain;charset=utf-8' }),
-            `${uzantisiz(dosya.name)}.txt`,
-          ),
-        );
-      } catch (hata) {
-        throw new Error(hataMetni(hata));
+        return {
+          blob: new Blob([tum], { type: 'text/plain;charset=utf-8' }),
+          ad: `${uzantisiz(dosya.name)}.txt`,
+          metin: tum,
+          mesaj: 'Yazı hazır.',
+        };
       } finally {
         await pdf.destroy();
       }
@@ -351,7 +319,7 @@ export function pdftenWord(kok) {
     ipucu: 'Yalnız yazı aktarılır. Resim, tablo ve sayfa düzeni gelmez.',
     alanlar: [],
     dugmeYazisi: 'Word\'e çevir',
-    is: async (dosya, durum, sonuc) => {
+    is: async (dosya, durum) => {
       const pdf = await pdfAc(await dosya.arrayBuffer());
 
       try {
@@ -368,16 +336,18 @@ export function pdftenWord(kok) {
         }
 
         if (sayfalar.every((paragraflar) => paragraflar.length === 0)) {
-          durum.hata('Bu dosyada seçilebilir yazı yok. Taranmış olabilir, "Taranmış sayfadan yazı" aracını dene.');
-          return;
+          throw new Error('Bu dosyada seçilebilir yazı yok. Taranmış olabilir, "Taranmış sayfadan yazı" aracını dene.');
         }
 
         const blob = new Blob([docxOlustur(sayfalar)], {
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         });
 
-        durum.tamam('Word dosyası hazır. Yalnız yazı aktarıldı, açıp kontrol et.');
-        sonuc.append(indirmeBaglantisi(blob, `${uzantisiz(dosya.name)}.docx`));
+        return {
+          blob,
+          ad: `${uzantisiz(dosya.name)}.docx`,
+          mesaj: 'Word dosyası hazır. Yalnız yazı aktarıldı, açıp kontrol et.',
+        };
       } finally {
         await pdf.destroy();
       }

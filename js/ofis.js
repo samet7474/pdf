@@ -2,7 +2,7 @@
 // Yükleme mantığı BentoPDF'in libreoffice-loader.ts dosyasından uyarlandı (AGPL-3.0).
 
 import { belgeCiktilari, uzantisiz } from './aralik.js';
-import { dosyaSecici, durumAlani, el, indirmeBaglantisi, isBaglat } from './ortak.js';
+import { el, topluArac } from './ortak.js';
 
 const TABAN = new URL('../vendor/libreoffice/', import.meta.url).href;
 const MB = 1024 * 1024;
@@ -119,48 +119,22 @@ async function cevir(dosya, hedef, durum) {
 }
 
 function motorUyarisi() {
-  return el(
-    'p',
-    { sinif: 'uyari' },
-    'İlk kullanımda yaklaşık 75 MB iner, Wi-Fi kullan. Motor açılınca 250 MB kadar bellek tutar, eski telefonda kapanabilir.',
-  );
+  return 'İlk kullanımda yaklaşık 75 MB iner, Wi-Fi kullan. Motor açılınca 250 MB kadar bellek tutar, eski telefonda kapanabilir.';
 }
 
 function sabitArac(kok, { kabul, baslik, ipucu, hedef, not }) {
-  let dosya = null;
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
-  const bilgi = el('p', { sinif: 'uyari' });
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, 'Çevir');
-  const ayarlar = el('div', { hidden: true }, bilgi, dugme);
-
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-    const blob = await cevir(dosya, hedef, durum);
-
-    durum.tamam(not);
-    sonuc.append(indirmeBaglantisi(blob, `${uzantisiz(dosya.name)}.${hedef}`));
-  });
-
-  kok.append(
-    motorUyarisi(),
-    dosyaSecici({
-      kabul,
-      baslik,
-      ipucu,
-      secilince: ([secilen]) => {
-        dosya = secilen;
-        bilgi.textContent = dosya.name;
-        ayarlar.hidden = false;
-        sonuc.replaceChildren();
-        durum.temizle();
-      },
+  topluArac(kok, {
+    kabul,
+    baslik,
+    ipucu,
+    uyari: motorUyarisi(),
+    dugmeYazisi: 'Çevir',
+    is: async (dosya, durum) => ({
+      blob: await cevir(dosya, hedef, durum),
+      ad: `${uzantisiz(dosya.name)}.${hedef}`,
+      mesaj: not,
     }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
+  });
 }
 
 const YAZI_TIPI_NOTU = 'Hazır. Yazı tipi dosyada gömülü değilse satır sonları biraz kayabilir.';
@@ -196,56 +170,41 @@ export function excel(kok) {
 }
 
 export function belge(kok) {
-  let dosya = null;
-
-  const durum = durumAlani();
-  const sonuc = el('div', { sinif: 'sonuc' });
-  const bilgi = el('p', { sinif: 'uyari' });
   const hedef = el('select', {});
-  const dugme = el('button', { sinif: 'ana-dugme', type: 'button' }, 'Çevir');
-  const ayarlar = el(
-    'div',
-    { hidden: true },
-    bilgi,
-    el('label', { sinif: 'alan' }, el('span', {}, 'Neye çevrilsin?'), hedef),
-    dugme,
-  );
 
-  isBaglat(dugme, durum, async () => {
-    sonuc.replaceChildren();
-    const blob = await cevir(dosya, hedef.value, durum);
+  topluArac(kok, {
+    kabul: '.docx,.doc,.odt,.rtf,.txt,.html,.htm,.epub,.xlsx,.xls,.ods,.csv,.pptx,.ppt,.odp',
+    baslik: 'Belgeleri seç',
+    ipucu: 'Word, Excel, slayt, metin, e-kitap. Çoklu seçimde aynı aileden seç.',
+    uyari: motorUyarisi(),
+    dugmeYazisi: 'Çevir',
+    alanlar: [el('label', { sinif: 'alan' }, el('span', {}, 'Neye çevrilsin?'), hedef)],
+    // Yalnız seçilen bütün dosyaların çevrilebildiği türler listelenir.
+    secimDegisti: (dosyalar) => {
+      const onceki = hedef.value;
+      const ortak = dosyalar
+        .map((dosya) => belgeCiktilari(dosya.name.split('.').pop()))
+        .reduce(
+          (kalan, liste) => (kalan === null ? liste : kalan.filter((tur) => liste.includes(tur))),
+          null,
+        ) ?? [];
 
-    durum.tamam('Hazır.');
-    sonuc.append(indirmeBaglantisi(blob, `${uzantisiz(dosya.name)}.${hedef.value}`));
-  });
+      hedef.replaceChildren(
+        ...ortak.map((tur) => el('option', { value: tur }, tur.toUpperCase())),
+      );
 
-  kok.append(
-    motorUyarisi(),
-    dosyaSecici({
-      kabul: '.docx,.doc,.odt,.rtf,.txt,.html,.htm,.epub,.xlsx,.xls,.ods,.csv,.pptx,.ppt,.odp',
-      baslik: 'Belgeyi seç',
-      ipucu: 'Word, Excel, slayt, metin, e-kitap',
-      secilince: ([secilen]) => {
-        sonuc.replaceChildren();
-        const secenekler = belgeCiktilari(secilen.name.split('.').pop());
-
-        if (secenekler.length === 0) {
-          ayarlar.hidden = true;
-          durum.hata('Bu dosya türünü çeviremiyorum.');
-          return;
-        }
-
-        dosya = secilen;
-        bilgi.textContent = dosya.name;
-        hedef.replaceChildren(
-          ...secenekler.map((tur) => el('option', { value: tur }, tur.toUpperCase())),
-        );
-        ayarlar.hidden = false;
-        durum.temizle();
-      },
+      if (ortak.includes(onceki)) {
+        hedef.value = onceki;
+      }
+    },
+    kontrol: () => {
+      if (!hedef.value) {
+        throw new Error('Seçtiğin dosyalar aynı türe çevrilemiyor. Aynı aileden dosya seç.');
+      }
+    },
+    is: async (dosya, durum) => ({
+      blob: await cevir(dosya, hedef.value, durum),
+      ad: `${uzantisiz(dosya.name)}.${hedef.value}`,
     }),
-    ayarlar,
-    durum.kok,
-    sonuc,
-  );
+  });
 }
