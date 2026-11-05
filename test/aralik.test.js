@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { aralikCoz, boyutYaz, kucultmeSonucu, uzantisiz } from '../js/aralik.js';
+import { aralikCoz, belgeCiktilari, boyutYaz, kucultmeSonucu, sureCoz, uzantisiz } from '../js/aralik.js';
 
 test('aralık ve tek sayfa birlikte çözülür', () => {
   assert.deepEqual(aralikCoz('1-3, 5', 10), [1, 2, 3, 5]);
@@ -42,4 +42,20 @@ test('küçültme sonucu doğru hesaplanır', () => {
   assert.deepEqual(kucultmeSonucu(100, 60), { kuculdu: true, yuzde: 40 });
   assert.equal(kucultmeSonucu(100, 120).kuculdu, false);
   assert.equal(kucultmeSonucu(100000, 99900).kuculdu, false);
+});
+
+test('süre saniyeye çevrilir', () => {
+  assert.equal(sureCoz('90'), 90);
+  assert.equal(sureCoz('1:30'), 90);
+  assert.equal(sureCoz('1:02:03'), 3723);
+});
+
+test('anlaşılmayan süre hata verir', () => {
+  assert.throws(() => sureCoz('bir dakika'), /anlaşılmadı/);
+});
+
+test('belge kendi türüne çevrilmez, gruplar karışmaz', () => {
+  assert.deepEqual(belgeCiktilari('PPTX'), ['pdf', 'odp']);
+  assert.ok(!belgeCiktilari('xlsx').includes('docx'));
+  assert.deepEqual(belgeCiktilari('exe'), []);
 });

@@ -2,31 +2,59 @@
 
 import { el } from './ortak.js';
 
-export const SURUM = '2026-11-05-c';
+export const SURUM = '2026-11-05-f';
 
 const GRUPLAR = [
   {
-    baslik: 'Sayfa işleri',
+    baslik: 'PDF\'e çevir',
+    araclar: [
+      { id: 'word', ad: 'Word\'den PDF\'e', aciklama: 'DOCX, DOC, ODT, RTF', modul: 'ofis', islev: 'word' },
+      { id: 'slayt', ad: 'Slayttan PDF\'e', aciklama: 'PPTX, PPT, ODP', modul: 'ofis', islev: 'slayt' },
+      { id: 'excel', ad: 'Excel\'den PDF\'e', aciklama: 'XLSX, XLS, ODS, CSV', modul: 'ofis', islev: 'excel' },
+      { id: 'resimden-pdf', ad: 'Resimden PDF\'e', aciklama: 'Fotoğrafları tek PDF yapar.', modul: 'donusum', islev: 'resimdenPdf' },
+    ],
+  },
+  {
+    baslik: 'PDF\'ten çevir',
+    araclar: [
+      { id: 'pdften-word', ad: 'PDF\'ten Word\'e', aciklama: 'Yazıyı Word\'e aktarır. Resim ve düzen gelmez.', modul: 'ekler', islev: 'pdftenWord' },
+      { id: 'pdften-resim', ad: 'PDF\'ten resme', aciklama: 'Sayfaları JPG ya da PNG yapar.', modul: 'donusum', islev: 'pdftenResim' },
+      { id: 'pdften-yazi', ad: 'PDF\'ten yazı', aciklama: 'Seçilebilir yazıyı metne çıkarır.', modul: 'ekler', islev: 'pdftenYazi' },
+      { id: 'ocr', ad: 'Taranmış sayfadan yazı', aciklama: 'Resimdeki yazıyı metne çevirir.', modul: 'donusum', islev: 'ocr' },
+    ],
+  },
+  {
+    baslik: 'PDF düzenle',
     araclar: [
       { id: 'birlestir', ad: 'Birleştir', aciklama: 'Birkaç PDF\'i tek dosya yapar.', modul: 'sayfa', islev: 'birlestir' },
       { id: 'bol', ad: 'Böl', aciklama: 'Seçtiğin sayfaları ayrı dosya yapar.', modul: 'sayfa', islev: 'bol' },
       { id: 'duzenle', ad: 'Sayfaları düzenle', aciklama: 'Sayfa siler, sırasını değiştirir.', modul: 'sayfa', islev: 'duzenle' },
       { id: 'dondur', ad: 'Döndür', aciklama: 'Yan duran sayfaları düzeltir.', modul: 'sayfa', islev: 'dondur' },
+      { id: 'kucult', ad: 'Küçült', aciklama: 'PDF\'in boyutunu düşürür.', modul: 'donusum', islev: 'kucult' },
+      { id: 'numara', ad: 'Sayfa numarası', aciklama: 'Sayfaların altına numara ekler.', modul: 'ekler', islev: 'sayfaNumarasi' },
+      { id: 'filigran', ad: 'Filigran', aciklama: 'Sayfaların üstüne soluk yazı ekler.', modul: 'ekler', islev: 'filigran' },
+      { id: 'sifrele', ad: 'Şifrele', aciklama: 'PDF\'e şifre koyar.', modul: 'ekler', islev: 'sifrele' },
+      { id: 'sifre-kaldir', ad: 'Şifreyi kaldır', aciklama: 'Şifresini bildiğin PDF\'i açık yapar.', modul: 'ekler', islev: 'sifreKaldir' },
     ],
   },
   {
-    baslik: 'Dönüştürme',
+    baslik: 'Belge',
     araclar: [
-      { id: 'resimden-pdf', ad: 'Resimden PDF\'e', aciklama: 'Fotoğrafları tek PDF yapar.', modul: 'donusum', islev: 'resimdenPdf' },
-      { id: 'pdften-resim', ad: 'PDF\'ten resme', aciklama: 'Sayfaları JPG ya da PNG yapar.', modul: 'donusum', islev: 'pdftenResim' },
-      { id: 'word', ad: 'Word\'den PDF\'e', aciklama: 'İlk seferde büyük bir motor indirir.', modul: 'word', islev: 'word' },
+      { id: 'belge', ad: 'Belge türünü değiştir', aciklama: 'Word, Excel, slayt, metin ve e-kitap türleri arasında çevirir.', modul: 'ofis', islev: 'belge' },
     ],
   },
   {
-    baslik: 'Küçültme ve yazı',
+    baslik: 'Resim',
     araclar: [
-      { id: 'kucult', ad: 'Küçült', aciklama: 'Dosya boyutunu düşürür.', modul: 'donusum', islev: 'kucult' },
-      { id: 'ocr', ad: 'Taranmış sayfadan yazı', aciklama: 'Resimdeki yazıyı metne çevirir.', modul: 'donusum', islev: 'ocr' },
+      { id: 'resim', ad: 'Resim çevir ve küçült', aciklama: 'JPG, PNG, WebP, HEIC. Boyutu da düşürür.', modul: 'resim', islev: 'resim' },
+    ],
+  },
+  {
+    baslik: 'Ses ve video',
+    araclar: [
+      { id: 'ses', ad: 'Ses çevir', aciklama: 'MP3, M4A, OGG, WAV. Videodan sesi de alır.', modul: 'medya', islev: 'ses' },
+      { id: 'video', ad: 'Video çevir ve küçült', aciklama: 'Her telefonda açılan MP4 yapar.', modul: 'medya', islev: 'video' },
+      { id: 'kes', ad: 'Ses ya da video kes', aciklama: 'İstediğin parçayı ayırır.', modul: 'medya', islev: 'kes' },
     ],
   },
 ];
@@ -34,14 +62,17 @@ const GRUPLAR = [
 const MODULLER = {
   sayfa: () => import('./sayfa-araclari.js'),
   donusum: () => import('./donusum-araclari.js'),
-  word: () => import('./word.js'),
+  ofis: () => import('./ofis.js'),
+  ekler: () => import('./pdf-ekleri.js'),
+  resim: () => import('./resim.js'),
+  medya: () => import('./medya.js'),
 };
 
 const ana = document.getElementById('ana');
 let temizlik = null;
 
 function anaEkran() {
-  document.title = 'PDF Araçları';
+  document.title = 'Dosya Araçları';
 
   ana.replaceChildren(
     ...GRUPLAR.flatMap((grup) => [
@@ -63,7 +94,7 @@ function anaEkran() {
 }
 
 async function aracEkrani(arac) {
-  document.title = `${arac.ad} · PDF Araçları`;
+  document.title = `${arac.ad} · Dosya Araçları`;
 
   const govde = el('div', {}, el('p', { sinif: 'durum' }, 'Yükleniyor'));
 

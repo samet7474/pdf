@@ -5,12 +5,17 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "vendor": "node scripts/vendor.mjs",
-    "test": "node --test test/aralik.test.js"
+    "test": "node --test test/aralik.test.js test/docx.test.js"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
     "@matbee/libreoffice-converter": "^2.7.2",
+    "@neslinesli93/qpdf-wasm": "^0.3.1",
     "@tesseract.js-data/eng": "^1.0.0",
     "@tesseract.js-data/tur": "^1.0.0",
+    "fflate": "^0.8.3",
+    "heic2any": "^0.0.4",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.7.284",
     "tesseract.js": "^7.0.0"

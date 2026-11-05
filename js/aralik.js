@@ -62,3 +62,42 @@ export function kucultmeSonucu(ozgunBoyut, yeniBoyut) {
     yuzde,
   };
 }
+
+// "1:30", "1:02:03" ya da "90" yazısını saniyeye çevirir.
+export function sureCoz(metin) {
+  const temiz = String(metin ?? '').trim();
+
+  if (!/^\d+(:\d{1,2}){0,2}$/.test(temiz)) {
+    throw new Error(`"${temiz}" anlaşılmadı. Örnek: 1:30`);
+  }
+
+  return temiz.split(':').reduce((toplam, parca) => toplam * 60 + Number(parca), 0);
+}
+
+const BELGE_GRUPLARI = [
+  {
+    girdi: ['docx', 'doc', 'odt', 'rtf', 'txt', 'html', 'htm', 'epub'],
+    // TXT ve HTML çıktısı yok: LibreOffice bu sürümde TXT'de takılıyor, HTML'de hata veriyor.
+    cikti: ['pdf', 'docx', 'odt', 'rtf'],
+  },
+  {
+    girdi: ['xlsx', 'xls', 'ods', 'csv'],
+    cikti: ['pdf', 'xlsx', 'ods', 'csv'],
+  },
+  {
+    girdi: ['pptx', 'ppt', 'odp'],
+    cikti: ['pdf', 'pptx', 'odp'],
+  },
+];
+
+// Bir belgenin hangi türlere çevrilebileceğini söyler. Kendi türü listede olmaz.
+export function belgeCiktilari(uzanti) {
+  const kucuk = String(uzanti).toLowerCase();
+  const grup = BELGE_GRUPLARI.find((aday) => aday.girdi.includes(kucuk));
+
+  if (!grup) {
+    return [];
+  }
+
+  return grup.cikti.filter((tur) => tur !== kucuk);
+}

@@ -58,6 +58,21 @@ await kopyala(`${LO}/wasm/soffice.worker.js`, 'libreoffice/soffice.worker.js');
 await sikistir(`${LO}/wasm/soffice.wasm`, 'libreoffice/soffice.wasm.gz');
 await sikistir(`${LO}/wasm/soffice.data`, 'libreoffice/soffice.data.gz');
 
+// Ses ve video
+await kopyala('@ffmpeg/ffmpeg/dist/esm', 'ffmpeg');
+await kopyala('@ffmpeg/core/dist/esm/ffmpeg-core.js', 'ffmpeg-core/ffmpeg-core.js');
+await kopyala('@ffmpeg/core/dist/esm/ffmpeg-core.wasm', 'ffmpeg-core/ffmpeg-core.wasm');
+
+// iPhone fotoğrafları (HEIC)
+await kopyala('heic2any/dist/heic2any.min.js', 'heic2any.min.js');
+
+// PDF'ten Word'e (zip yazıcı)
+await kopyala('fflate/esm/browser.js', 'fflate.js');
+
+// PDF şifreleme
+await kopyala('@neslinesli93/qpdf-wasm/dist/qpdf.js', 'qpdf/qpdf.js');
+await kopyala('@neslinesli93/qpdf-wasm/dist/qpdf.wasm', 'qpdf/qpdf.wasm');
+
 // İndirme çubuğu toplam boyutu buradan okur.
 const wasm = (await stat(join(HEDEF, 'libreoffice', 'soffice.wasm.gz'))).size;
 const data = (await stat(join(HEDEF, 'libreoffice', 'soffice.data.gz'))).size;

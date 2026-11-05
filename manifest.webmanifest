@@ -1,7 +1,7 @@
 {
-  "name": "PDF Araçları",
-  "short_name": "PDF",
-  "description": "Reklamsız PDF araçları. Dosyalar cihazından çıkmaz.",
+  "name": "Dosya Araçları",
+  "short_name": "Dosya",
+  "description": "Reklamsız dosya araçları. Dosyalar cihazından çıkmaz.",
   "lang": "tr",
   "start_url": "./",
   "scope": "./",
