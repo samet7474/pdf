@@ -398,7 +398,7 @@ async function ocrIsciKur(durum, ilerleme) {
       if (kayit.status === 'recognizing text') {
         ilerleme(kayit.progress);
       } else {
-        durum.yaz('Yazı tanıma motoru hazırlanıyor');
+        durum.yaz('Yazı tanıma motoru hazırlanıyor. İlk seferde bir dakika sürebilir.');
       }
     },
   });
@@ -434,7 +434,7 @@ export function ocr(kok) {
         ? Array.from({ length: pdf.numPages }, (_, sira) => sira + 1)
         : aralikCoz(aralik.value, pdf.numPages);
 
-    durum.yaz('Yazı tanıma motoru hazırlanıyor');
+    durum.yaz('Yazı tanıma motoru hazırlanıyor. İlk seferde bir dakika sürebilir.');
 
     let siradaki = 0;
     const isci = await ocrIsciKur(durum, (oran) => {

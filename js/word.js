@@ -48,6 +48,8 @@ async function motorKur(durum) {
     return cevirici;
   }
 
+  durum.yaz('Word motoru hazırlanıyor. Yavaş bağlantıda indirme biraz geç başlayabilir.');
+
   const { WorkerBrowserConverter } = await import('../vendor/libreoffice/browser.js');
   const boyutlar = await (await fetch(`${TABAN}boyut.json`)).json();
   const toplam = boyutlar.wasm + boyutlar.data;

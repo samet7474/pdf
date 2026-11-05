@@ -5,7 +5,7 @@
 // Başlık ekleme fikri coi-serviceworker yönteminden alındı.
 // Siteyi güncellerken SURUM değerini app.js ile birlikte artır.
 
-const SURUM = '2026-11-05-a';
+const SURUM = '2026-11-05-b';
 const UYGULAMA = `pdf-uygulama-${SURUM}`;
 const MOTOR = 'pdf-motor-1';
 
@@ -47,7 +47,10 @@ function basliklariEkle(yanit) {
 }
 
 // Motor dosyaları büyük ve sürüme bağlı: önce önbellek.
-async function onceOnbellek(istek) {
+// Önbelleğe yazma arka planda yapılır. Beklenirse sayfa dosya bitene kadar
+// tek bayt göremez, indirme çubuğu da donmuş görünür.
+async function onceOnbellek(olay) {
+  const istek = olay.request;
   const onbellek = await caches.open(MOTOR);
   const kayitli = await onbellek.match(istek);
 
@@ -58,21 +61,22 @@ async function onceOnbellek(istek) {
   const yanit = await fetch(istek);
 
   if (yanit.ok) {
-    await onbellek.put(istek, yanit.clone());
+    olay.waitUntil(onbellek.put(istek, yanit.clone()));
   }
 
   return yanit;
 }
 
 // Site dosyaları güncel kalsın: önce internet, yoksa önbellek.
-async function onceInternet(istek) {
+async function onceInternet(olay) {
+  const istek = olay.request;
   const onbellek = await caches.open(UYGULAMA);
 
   try {
     const yanit = await fetch(istek);
 
     if (yanit.ok) {
-      await onbellek.put(istek, yanit.clone());
+      olay.waitUntil(onbellek.put(istek, yanit.clone()));
     }
 
     return yanit;
@@ -98,6 +102,6 @@ self.addEventListener('fetch', (olay) => {
   const motorDosyasi = adres.pathname.includes('/vendor/');
 
   olay.respondWith(
-    (motorDosyasi ? onceOnbellek(request) : onceInternet(request)).then(basliklariEkle),
+    (motorDosyasi ? onceOnbellek(olay) : onceInternet(olay)).then(basliklariEkle),
   );
 });
