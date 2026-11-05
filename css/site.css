@@ -1,0 +1,405 @@
+:root {
+  color-scheme: light dark;
+  --zemin: #f6f5f1;
+  --kart: #ffffff;
+  --yazi: #1d1d1b;
+  --soluk: #5e5d58;
+  --cizgi: #d9d7cf;
+  --vurgu: #b3361f;
+  --vurgu-yazi: #ffffff;
+  --yesil: #1c6b45;
+  --kirmizi: #a32020;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --zemin: #191917;
+    --kart: #252522;
+    --yazi: #f2f1ec;
+    --soluk: #b5b3aa;
+    --cizgi: #3d3c38;
+    --vurgu: #e4664a;
+    --vurgu-yazi: #1a0a06;
+    --yesil: #6fcf9f;
+    --kirmizi: #f09595;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--zemin);
+  color: var(--yazi);
+  font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.ust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 16px 16px 8px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rozet {
+  color: var(--soluk);
+  font-size: 14px;
+}
+
+.ana {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 8px 16px 32px;
+  outline: none;
+}
+
+.alt {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 16px;
+  color: var(--soluk);
+  font-size: 14px;
+}
+
+h1 {
+  margin: 8px 0 4px;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+h2 {
+  margin: 24px 0 8px;
+  color: var(--soluk);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.aciklama {
+  margin: 0 0 16px;
+  color: var(--soluk);
+}
+
+.izgara {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.arac {
+  display: block;
+  min-height: 76px;
+  padding: 12px 14px;
+  border: 1px solid var(--cizgi);
+  border-radius: 10px;
+  background: var(--kart);
+  text-decoration: none;
+}
+
+.arac:hover,
+.arac:focus-visible {
+  border-color: var(--vurgu);
+}
+
+.arac strong {
+  display: block;
+}
+
+.arac span {
+  display: block;
+  color: var(--soluk);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.geri {
+  display: inline-block;
+  min-height: 44px;
+  padding: 10px 0;
+  color: var(--soluk);
+  text-decoration: none;
+}
+
+.secici {
+  display: block;
+  padding: 24px 16px;
+  border: 2px dashed var(--cizgi);
+  border-radius: 10px;
+  background: var(--kart);
+  text-align: center;
+  cursor: pointer;
+}
+
+.secici.uzerinde,
+.secici:hover {
+  border-color: var(--vurgu);
+}
+
+.secici strong {
+  display: block;
+}
+
+.secici small {
+  color: var(--soluk);
+  font-size: 14px;
+}
+
+.secici input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.liste {
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.liste li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--cizgi);
+  border-radius: 8px;
+  background: var(--kart);
+}
+
+.liste .ad {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.liste small {
+  display: block;
+  color: var(--soluk);
+}
+
+button,
+select,
+input[type="text"] {
+  min-height: 44px;
+  border: 1px solid var(--cizgi);
+  border-radius: 8px;
+  background: var(--kart);
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.kucuk {
+  flex: none;
+  width: 44px;
+  padding: 0;
+}
+
+.ana-dugme,
+.indir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 50px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--vurgu);
+  color: var(--vurgu-yazi);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.ikincil {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.alan {
+  display: block;
+  margin-top: 14px;
+}
+
+.alan > span {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.alan small {
+  display: block;
+  color: var(--soluk);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.alan input[type="text"],
+.alan select {
+  width: 100%;
+  padding: 0 10px;
+}
+
+.secenekler {
+  display: grid;
+  gap: 6px;
+}
+
+.secenek {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--cizgi);
+  border-radius: 8px;
+  background: var(--kart);
+  font-weight: 400;
+}
+
+.secenek input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+}
+
+.secenek small {
+  display: block;
+  color: var(--soluk);
+  font-size: 14px;
+}
+
+.durum {
+  margin-top: 12px;
+  min-height: 24px;
+  color: var(--soluk);
+}
+
+.durum.hata {
+  color: var(--kirmizi);
+}
+
+.durum.tamam {
+  color: var(--yesil);
+}
+
+progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  margin-top: 8px;
+  accent-color: var(--vurgu);
+}
+
+.uyari {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cizgi);
+  border-radius: 8px;
+  background: var(--kart);
+  font-size: 15px;
+}
+
+.sonuc textarea {
+  width: 100%;
+  min-height: 240px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--cizgi);
+  border-radius: 8px;
+  background: var(--kart);
+  color: inherit;
+  font: inherit;
+}
+
+.sayfalar {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sayfa {
+  padding: 6px;
+  border: 1px solid var(--cizgi);
+  border-radius: 8px;
+  background: var(--kart);
+}
+
+.sayfa.silindi canvas {
+  opacity: 0.2;
+}
+
+.sayfa.silindi .no {
+  color: var(--kirmizi);
+}
+
+.sayfa .onizleme {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 4;
+  background: #ffffff;
+}
+
+.sayfa canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.sayfa .no {
+  margin: 4px 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+.sayfa .dugmeler {
+  display: flex;
+  gap: 4px;
+}
+
+.sayfa .dugmeler button {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
